@@ -1,0 +1,11 @@
+Webots Proto Cache File version 1.5
+protoFileHash: c200443afaa2ded49993130365f37f0e
+needsRobotAncestor: 1
+baseType: Solid
+slotType: 
+parameters: solidName,AnkleMotorName,KneeMotorName,HipMotorName,RiderPos,KneeJoint,hipJoint,shinPoint1l,shinPoint2l,shinPoint1r,shinPoint2r,thighPoint2l,thighPoint2r,torsoPoint1,torsoPoint2,shinMass,thighMass,torsoMass,riderMass
+tags: 
+license: 
+licenseUrl: 
+documentationUrl: 
+info: 

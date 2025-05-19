@@ -1,0 +1,209 @@
+#VRML_SIM R2022a utf8
+# Describe the functionality of your PROTO here.
+# tags: nonDeterministic
+# template language: javascript
+
+PROTO TabletopJump [
+  field SFRotation roadRotation 1 0 0 0
+  field SFVec3f    roadPosition 0 0 0
+  field SFFloat t_takeoff 0.5
+  field SFFloat dtheta 0.05
+  field SFFloat R 5.0
+  field SFFloat D 5.0
+  field SFFloat rW 5.0
+  field SFFloat theta_land 0.349
+  
+]
+{
+%<
+    //import webots geometry library so we can interpret fields
+    import * as wbgeometry from 'wbgeometry.js';
+
+  // Save variables from proto
+  let myt_takeoff = fields.t_takeoff.value;
+  let mydtheta = fields.dtheta.value;
+  let myR = fields.R.value;
+  let myD = fields.D.value;
+  let myrW = fields.rW.value;
+  let mytheta_land = fields.theta_land.value;
+
+    function TabletopJump(t_takeoff, dtheta,R,D,theta_land,rW){
+    this.t_takeoff = t_takeoff;
+    this.dtheta =dtheta;  
+    this.R = R; 
+    this.D = D; 
+    this.rW = rW; 
+    this.theta_land = theta_land;
+    this.vertices = []//this will hold all xyz points of the road
+    this.coordIndices = []//this is a list of triangles defined by the indices in the 'vertices' list.
+  //this function creates all slices in our road.
+    this.createVertices = function(){
+      //tnow = 0;
+    //create a vector to keep track of how many slices we have. could pre-calculate this, but eh.
+      this.num_slices = 0
+      for(let tnow = 0;tnow<=this.t_takeoff;tnow=tnow+this.dtheta){
+       
+
+      //increment number of slices (we'll need this later for triangles.)
+        this.num_slices++;
+      //use our function above to create the slice
+        let xnow = this.R*Math.sin(tnow);
+        let znow = this.R - this.R*Math.cos(tnow);
+        let myslice1 = [[xnow,this.rW/2,znow],[xnow,0,znow],[xnow,-this.rW/2,znow]]
+        //add the points in this slice to our list.
+        this.vertices = this.vertices.concat(myslice1)
+        //console.log(myslice1)
+      
+    }
+    //now push two more slices, one for beginning of landing, one for end.
+      let x2 = this.R* Math.sin(this.t_takeoff)+this.D;
+      let z2 = this.R*(1-Math.cos(this.t_takeoff));
+      let myslice2 = [[x2,this.rW/2,z2],[x2,0,z2],[x2,-this.rW/2,z2]]
+      this.vertices = this.vertices.concat(myslice2)
+      this.num_slices++;
+      
+    
+      let x3 =x2+z2/(Math.tan(this.theta_land));
+      let z3 = 0; 
+      let myslice3 = [[x3,this.rW/2,z3],[x3,0,z3],[x3,-this.rW/2,z3]]
+      this.vertices = this.vertices.concat(myslice3)
+      this.num_slices++;
+    
+  }
+    
+    this.createTriangles = function(){
+      this.createVertices();
+    
+    //outer for-loop that moves through each slice.
+      for(let slice_ind = 0;slice_ind<(this.num_slices-1);slice_ind++){
+        for(let point_ind = 0;point_ind<2;point_ind++){
+          var offsetThis = slice_ind*(3)
+          var offsetNext = (slice_ind+1)*(3)
+          var tri = [offsetThis+point_ind,offsetNext+point_ind+1,offsetNext+point_ind]
+          this.coordIndices.push(tri)
+          
+      
+
+        }
+        
+        for(let point_ind = 0;point_ind<2;point_ind++){
+          var offsetThis = slice_ind*(3)
+          var offsetNext = (slice_ind+1)*(3)
+          var tri = [offsetThis+point_ind,offsetThis+point_ind+1,offsetNext+point_ind+1]
+          this.coordIndices.push(tri)
+          
+        }
+      
+        for(let point_ind = 0;point_ind<2;point_ind++){
+          var offsetThis = 0;
+          var offsetNext = (this.num_slices-1)*(3)
+          var tri = [offsetThis+point_ind,offsetThis+point_ind+1,offsetNext+point_ind+1]
+          this.coordIndices.push(tri)
+      
+          tri = [offsetThis+point_ind,offsetNext+point_ind+1,offsetNext+point_ind]
+          this.coordIndices.push(tri)
+
+      }
+      
+    }
+    
+  }
+  
+}
+
+  //create a slant road object by using the proto fields
+  var myRoad = new TabletopJump(myt_takeoff,mydtheta,myR,myD,mytheta_land,myrW);
+  myRoad.createTriangles();
+>%
+
+DEF TabletopJump Solid {
+  rotation IS roadRotation
+  translation IS roadPosition
+    children [
+      DEF left_lane_road_shape Shape {
+        appearance Appearance {
+        } appearance PBRAppearance {
+            roughness 0.3
+            metalness 0
+            textureTransform TextureTransform {
+            translation 0 20
+            rotation 1.5707963267948966192313216916398
+            scale 20 20
+            }
+            baseColorMap ImageTexture{
+            %< for (let i = 0; i < myRoad.coordIndices.length; i=i+6) { >%
+              url "../textures/dirt_texture.jpg"
+               %< } >%
+               filtering 5
+           }
+        }
+        geometry IndexedFaceSet {
+        coord Coordinate {
+            point [
+                %< for (let i = 0; i < myRoad.vertices.length; ++i) { >%
+                %<= myRoad.vertices[i][0] >% %<= myRoad.vertices[i][1] >% %<= myRoad.vertices[i][2] >%
+                %< } >%
+            ]
+        }
+        coordIndex [
+            %<for (let i = 0; i < myRoad.coordIndices.length; i=i+6) { >%
+            %<= myRoad.coordIndices[i][0] >% %<= myRoad.coordIndices[i][1] >% %<= myRoad.coordIndices[i][2] >% -1
+            %<= myRoad.coordIndices[i+1][0] >% %<= myRoad.coordIndices[i+1][1] >% %<= myRoad.coordIndices[i+1][2] >% -1
+            %<}>%
+        ]
+        }
+      }
+      DEF right_lane_road_shape Shape {
+        appearance Appearance {
+        } appearance PBRAppearance {
+            roughness 0.3
+            metalness 0
+            textureTransform TextureTransform {
+            scale 100 100
+            }
+            baseColorMap ImageTexture{
+              url "../textures/dirt_texture.jpg"
+           }
+        }
+        geometry IndexedFaceSet {
+        coord Coordinate {
+            point [
+                %< for (let i = 0; i < myRoad.vertices.length; ++i) { >%
+                %<= myRoad.vertices[i][0] >% %<= myRoad.vertices[i][1] >% %<= myRoad.vertices[i][2] >%
+                %< } >%
+            ]
+        }
+        coordIndex [
+            %<for (let i = 0; i < myRoad.coordIndices.length; i=i+6) { >%
+            %<= myRoad.coordIndices[i+2][0] >% %<= myRoad.coordIndices[i+2][1] >% %<= myRoad.coordIndices[i+2][2] >% -1
+            %<= myRoad.coordIndices[i+3][0] >% %<= myRoad.coordIndices[i+3][1] >% %<= myRoad.coordIndices[i+3][2] >% -1
+            %<= myRoad.coordIndices[i+4][0] >% %<= myRoad.coordIndices[i+4][1] >% %<= myRoad.coordIndices[i+4][2] >% -1
+            %<= myRoad.coordIndices[i+5][0] >% %<= myRoad.coordIndices[i+5][1] >% %<= myRoad.coordIndices[i+5][2] >% -1
+            %<}>%
+        ]
+        }
+      }
+      DEF road_shape Shape {
+        appearance Appearance {
+        } appearance PBRAppearance {
+            transparency 1
+        }
+        geometry IndexedFaceSet {
+          coord Coordinate {
+            point [
+              %< for (let i = 0; i < myRoad.vertices.length; ++i) { >%
+              %<= myRoad.vertices[i][0] >% %<= myRoad.vertices[i][1] >% %<= myRoad.vertices[i][2] >%
+              %< } >%
+            ]
+          }
+          coordIndex [
+            %<for (let i = 0; i < myRoad.coordIndices.length; ++i) { >%
+            %<= myRoad.coordIndices[i][0] >% %<= myRoad.coordIndices[i][1] >% %<= myRoad.coordIndices[i][2] >% -1
+            %<}>%
+          ]
+        }
+      }
+    ]
+    boundingObject USE road_shape
+  }
+}

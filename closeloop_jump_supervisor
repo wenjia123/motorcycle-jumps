@@ -1,0 +1,16 @@
+from controller import Supervisor
+
+TIME_STEP = 1
+
+robot = Supervisor()  # create Supervisor instance
+
+# [CODE PLACEHOLDER 1]
+mc_node = robot.getFromDef('PTW')
+
+
+i = 0
+while robot.step(TIME_STEP) != -1:
+  if (i <1000 ):
+    print(mc_node)
+    mc_node.setVelocity([50,0,0,0,0,0])
+  i += 1

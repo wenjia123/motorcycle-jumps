@@ -1,0 +1,56 @@
+#VRML_SIM R2022a utf8
+WorldInfo {
+  info [
+    "Open Loop Step Validation: Bicycle"
+  ]
+  title "1_openloop_validation_bicycle"
+  CFM 0.0001
+  ERP 0.6
+  basicTimeStep 1
+  lineScale 1
+  contactProperties [
+    ContactProperties {
+      coulombFriction [
+        8
+      ]
+      bounce 0.001
+      softCFM 0.0003
+    }
+  ]
+}
+Viewpoint {
+  orientation -0.16987808327873605 -0.3059988503251232 0.9367529772684183 5.074176620161559
+  position -0.5573187663643716 5.126663751117689 2.147089361839614
+  near 1
+  follow "Bicycle"
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+CircleArena {
+  radius 200
+  floorTileSize 2 2
+  wallThickness 0.1
+  wallHeight 1
+  wallAppearance OldPlywood {
+  }
+}
+DEF supervisor Robot {
+  translation 0 0 0.02
+  controller "1_openloop_validation_bicycle_supervisor"
+  supervisor TRUE
+}
+DEF PTW WeBikes {
+  BikeRotation 1 0 0 0.01
+  mrf 85
+  xrf 0.3
+  mff 4
+  tireRadiusF 0.01
+  tireRadiusR 0.01
+  controller "1_openloop_validation_bicycle"
+  useowninertial [
+    0 0 0
+    0 0 0
+  ]
+}

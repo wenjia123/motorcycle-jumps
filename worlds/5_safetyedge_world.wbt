@@ -1,0 +1,69 @@
+#VRML_SIM R2022a utf8
+WorldInfo {
+  info [
+    "Safety Edge Lane Change Simulation"
+  ]
+  title "Safety Edge"
+  CFM 0.0001
+  ERP 0.6
+  basicTimeStep 1
+  lineScale 1
+  contactProperties [
+    ContactProperties {
+      bounce 0
+      softCFM 0.0003
+    }
+    ContactProperties {
+      material1 "motorcycle_wheel"
+      bounce 0
+      bounceVelocity 0
+      softCFM 0.01
+    }
+  ]
+}
+Viewpoint {
+  orientation -0.06223467198229793 -0.032734712695107256 0.9975245782375614 3.193645082145242
+  position 60.00477624360113 1.9282441414184348 0.6085249084718872
+  near 1
+  follow "Bicycle"
+  followType "Pan and Tilt Shot"
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+DEF PTW WeBikes {
+  bicycle_shape FALSE
+  motorcycle_shape TRUE
+  BikeRotation 0 0 1 0
+  BikePosition 0 0 -0.18
+  b 1.4478
+  c 0.115
+  lambda 1.1
+  tireRadiusF 0.05
+  tireRadiusR 0.06
+  Xff 1.25
+  use_suspension TRUE
+  springRate_front 30000
+  measured_sag_front 0.025
+  jounce_front 0.06333012399764275
+  wheelRate_rear 60000
+  jounce_rear 0.11170839115825015
+  controller "5_safetyedge"
+  useowninertial [
+    0 0 0
+    0 0 0
+  ]
+}
+Robot {
+  name "safety edge supervisor"
+  controller "5_safetyedge_supervisor"
+  supervisor TRUE
+}
+DEF SlantRoad SafetyEdge {
+  roadRotation 0 0 1 0
+  roadPosition -1 0 -0.093
+  rLen 200
+  height 3
+  edgePosition 0.3
+}

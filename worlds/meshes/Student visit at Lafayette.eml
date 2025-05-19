@@ -1,0 +1,108 @@
+Delivered-To: liwe@lafayette.edu
+Received: by 2002:a50:3f86:0:b0:253:d58d:c2ff with SMTP id e6csp744103ecu;
+        Wed, 10 Apr 2024 18:02:08 -0700 (PDT)
+X-Forwarded-Encrypted: i=2; AJvYcCWYxt9joMRJ6tZxMKX3hGTKoI91xnI81n/2GkKkc4FkUw3+aWcc4A7do726JG2hdBWYeV3mP7mriklLx2VSfsP7yL4=
+X-Received: by 2002:a17:906:a389:b0:a52:192a:4ea with SMTP id k9-20020a170906a38900b00a52192a04eamr916108ejz.29.1712797328678;
+        Wed, 10 Apr 2024 18:02:08 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1712797328; cv=none;
+        d=google.com; s=arc-20160816;
+        b=xDD7U4/yNPHRr2b5co52khDkFlt/pUsgfRLPeCB9liH3EjVp8xxcHqreK0blJ4ZzXQ
+         3E79WFTAu1FOKTRIv3+K/TblbEcu+GIUpxuAzl4G1Rw81eyL97pClUfN9Ci1VFTHZ7St
+         qePAfNWrJoIHm82oj4S0nHLglcUyU89UEkxIhlZudopUdV+/UhqruWSb7JFRCbJk7kMc
+         RDCBy0JWhJaUI64sL/hT4e0lPz0jWrIBUcXKMjzLVqAiOLQevzsNo+1mOGbXMJWXcQZj
+         vTJPhipCmcFAsVvtzlIVgM45Tnl+kty+wHtp9bEzUa7jyzv2ak7Ts9HTsIz2SC3gkO9A
+         d5iw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=to:subject:message-id:date:from:mime-version:dkim-signature;
+        bh=cQ/upF9s4eneWJQiCLbj1pzUFy+vJ8cj84qa0Cw+ENw=;
+        fh=utFpLiIjlxtfO1F6FZOHLwdYZBGlG7toXPwe/u19ycI=;
+        b=IozClZLAFL3WzKIMj6XyM4RoisADYHeRUCv9IK1WEiv0dxIjc8IAY+DrF77BB2K9r+
+         h8BSXipQ11C80HyqRzxq1qH4+v/ExeQ6aC7oakCOYN3+YMsmp+F/DMYkoPiO+r0bb34f
+         n+MWxwPrx7/UTAJdMKicgJxo7LuxUZ/QZRDyZuOPTeseVLlgqkFu7NtdyjeT4ep8UXmT
+         GBrf/E0qEpp800/3RZLk19AMovlFCIpkVJ0+6KWp7/W6cNupZSoVbIJuNhCz4ghFEIrc
+         pF9p4u8/Z1FTM0abNsZcsasC9sMg2GWF5ohzPKNzhVbNAcfyQEL6aQZ2wUxXuubEAR67
+         alOA==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@lafayette.edu header.s=google header.b=cFQLDJnB;
+       spf=pass (google.com: domain of domagals@lafayette.edu designates 209.85.220.41 as permitted sender) smtp.mailfrom=domagals@lafayette.edu;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=lafayette.edu
+Return-Path: <domagals@lafayette.edu>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id w10-20020a170906184a00b00a51f7de1865sor101816eje.12.2024.04.10.18.02.08
+        for <liwe@lafayette.edu>
+        (Google Transport Security);
+        Wed, 10 Apr 2024 18:02:08 -0700 (PDT)
+Received-SPF: pass (google.com: domain of domagals@lafayette.edu designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@lafayette.edu header.s=google header.b=cFQLDJnB;
+       spf=pass (google.com: domain of domagals@lafayette.edu designates 209.85.220.41 as permitted sender) smtp.mailfrom=domagals@lafayette.edu;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=lafayette.edu
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=lafayette.edu; s=google; t=1712797328; x=1713402128; darn=lafayette.edu;
+        h=to:subject:message-id:date:from:mime-version:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=cQ/upF9s4eneWJQiCLbj1pzUFy+vJ8cj84qa0Cw+ENw=;
+        b=cFQLDJnBhtJ4U4bVqWVRq9Q3s/veTvcRhG66b4FWZv3K0nr3yYIvZGZKM0wmf579KR
+         UdI1kJOJ9FcQKzZTg44cybtNZtqcWbgmkGEvilfn0UuqL/862h3cVGES7IyQVxx1CqS3
+         Txf2mSOIkkZmZCo5ZrXyq9ObqITNAPMfW1O28JrBrwomtEkYWOV/l1724Zz93mfOmf6k
+         Zdwwl4hoSIkg+4trvg9PddGC2c1CxPxRAD0MqJItgZJcEKRPG08+Iq5MCSURPbw/AFgx
+         43E0oZosM79VKe8eVAfFlG54PD5+sagJLsR6eGNiJIbISl98IwRbSzGJH47tbINgx4Ri
+         IuqA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1712797328; x=1713402128;
+        h=to:subject:message-id:date:from:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=cQ/upF9s4eneWJQiCLbj1pzUFy+vJ8cj84qa0Cw+ENw=;
+        b=fvmbnSqEu+wA8lrV6c2sZE/6LjjhlyzdZTBeqeZcqKU80O9uUjbiQmnfLDqGyBRIp9
+         /r4hkwCN4OrLJUKl37pbhp1ZBm9TOHppfEMLLvmVFzD7/U2Sd9IbX1l5vaLdHwWMdCzx
+         i7VegMYOmz24RScoj4qp+UBqLI9+CMEYOnYBHLQx8s88unJnBIVMxAkKzAVmNzQELd1c
+         V306GZgg339Bao/X12aIvHg/7lWZHRw8nEGEQBtICcigAUYBXBDmCM4hgzLCL63IkMO/
+         qEd8VZcSpSykrf/PYB3OJvjoOSxEgZbvEYXtpK+0aHBuaun01mI3Xv5pYnQl8SNvSQaF
+         yshg==
+X-Forwarded-Encrypted: i=1; AJvYcCU5iZlVO6Ns9y7bHf3hczi2dmRcRcdYorGvJx48rozmvpQuUzEjlSRB0dOD2p3wIZbVMM06Uv5FyV3N+tT5BnZC1BE=
+X-Gm-Message-State: AOJu0YzIiFrEGEja5Fl3BYpy55/ciM3tZz5K2Lc5hH/Sb0ulfeRD36Rx
+	OWNSeUvELKZTjTDGqStqRCJ4aZinnrYvUzIEZbuNpD1oGlyF1m1buGGUS85ofcKut9pop/OTNhU
+	YQymElcJs467k6bAipwh0mFoK4iYUbhKuyQpF0Ec=
+X-Google-Smtp-Source: AGHT+IEDgm/QT2i/iYImn9C0fs8jbc3yUxqV5rkIlx0x8FTDVnYzvF2vXN5RcKc7z3teDN8cm6RI9QDw7ig84jPa9Ds=
+X-Received: by 2002:a50:9991:0:b0:56b:e13c:b5cc with SMTP id
+ m17-20020a509991000000b0056be13cb5ccmr2610787edb.14.1712797328147; Wed, 10
+ Apr 2024 18:02:08 -0700 (PDT)
+MIME-Version: 1.0
+From: Susan Domagalski <domagals@lafayette.edu>
+Date: Wed, 10 Apr 2024 21:01:57 -0400
+Message-ID: <CAC7CeYLC=dqTc8hwuzK+gGhDhuNK-OyXxiwMQzA1eJs=DAJTNw@mail.gmail.com>
+Subject: Student visit at Lafayette
+To: lukecrimi05@gmail.com, Fabienne Crimi <fabienne915@gmail.com>, 
+	Wenjia Li <liwe@lafayette.edu>
+Content-Type: multipart/alternative; boundary="000000000000516de10615c7b49b"
+
+--000000000000516de10615c7b49b
+Content-Type: text/plain; charset="UTF-8"
+
+Hello Luke,
+We have great news. One of the computer science students, Wenjia Li,
+(copied) has offered to meet with you between 2-3pm tomorrow. Can you
+please share contact information and logistics information with her ?
+
+
+Good luck and enjoy Lafayette!
+
+Sue Domagalski
+Gateway center
+Hogg Hall
+
+--000000000000516de10615c7b49b
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"auto">Hello Luke,<div dir=3D"auto">We have great news. One of t=
+he computer science students, Wenjia Li, (copied) has offered to meet with =
+you between 2-3pm=C2=A0tomorrow. Can you please share contact information a=
+nd logistics information with her ?=C2=A0</div><div dir=3D"auto"><br></div>=
+<div dir=3D"auto"><br></div><div dir=3D"auto">Good luck and enjoy Lafayette=
+!=C2=A0</div><div dir=3D"auto"><br></div><div dir=3D"auto">Sue Domagalski</=
+div><div dir=3D"auto">Gateway center=C2=A0</div><div dir=3D"auto">Hogg Hall=
+</div></div>
+
+--000000000000516de10615c7b49b--

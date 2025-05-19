@@ -1,0 +1,98 @@
+#VRML_SIM R2022a utf8
+WorldInfo {
+  info [
+    "Pedestrian Simulation"
+  ]
+  title "Autonomous Razor"
+  CFM 0.0001
+  ERP 0.6
+  basicTimeStep 5
+  lineScale 1
+  contactProperties [
+    ContactProperties {
+      bounce 0
+      softCFM 0.0003
+    }
+    ContactProperties {
+      material1 "motorcycle_wheel"
+      bounce 0
+      bounceVelocity 0
+      softCFM 0.01
+    }
+  ]
+}
+Viewpoint {
+  orientation 0.1627125915027014 0.31794768372248633 -0.9340416923146315 0.8092324861257616
+  position -2.613083446948379 5.862150414957672 2.3030859853864585
+  near 1
+  follow "Bicycle"
+  followType "Mounted Shot"
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  floorSize 400 400
+  floorAppearance Appearance {
+    material Material {
+      transparency 1
+    }
+    texture ImageTexture {
+    }
+  }
+  wallAppearance Appearance {
+    material Material {
+      transparency 1
+    }
+  }
+}
+Road {
+  width 12
+  lines [
+    RoadLine {
+      type "continuous"
+    }
+  ]
+  wayPoints [
+    -100 0 0
+    100 0 0
+  ]
+}
+DEF PTW WeBikes {
+  bicycle_shape FALSE
+  motorcycle_shape TRUE
+  BikeRotation 0 0 -1 0
+  BikePosition 0 0 0.02
+  mrf 158
+  hrf 0.5186
+  xrf 0.6888
+  b 1.4478
+  c 0.115
+  lambda 1.1
+  rfw 0.356
+  rrw 0.33
+  mfw 10
+  mrw 13
+  mff 10
+  tireRadiusF 0.04
+  tireRadiusR 0.055
+  Xff 1.25
+  hff 0.7347
+  use_suspension TRUE
+  springRate_front 30000
+  measured_sag_front 0.025
+  jounce_front 0.06333012399764275
+  wheelRate_rear 60000
+  jounce_rear 0.11170839115825015
+  controller "4_closedloop_validation_motorcycle"
+  useowninertial [
+    0 0 0
+    0 0 0
+  ]
+}
+Robot {
+  name "laneChange_supervisor"
+  controller "4_closedloop_validation_motorcycle_supervisor"
+  supervisor TRUE
+}

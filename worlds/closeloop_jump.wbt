@@ -1,0 +1,83 @@
+#VRML_SIM R2022a utf8
+WorldInfo {
+  info [
+    "Safety Edge Lane Change Simulation"
+  ]
+  title "Safety Edge"
+  CFM 0.0001
+  ERP 0.6
+  basicTimeStep 1
+  lineScale 1
+  contactProperties [
+    ContactProperties {
+      coulombFriction [
+        8
+      ]
+      bounce 0
+      softCFM 0.0003
+    }
+    ContactProperties {
+      material1 "motorcycle_wheel"
+      coulombFriction [
+        8
+      ]
+      bounce 0
+      bounceVelocity 0
+      softCFM 0.01
+    }
+  ]
+}
+Viewpoint {
+  orientation 0.3108412407863948 -0.6064039251523771 -0.7318825059981723 5.305612906541319
+  position 23.933854249112795 -13.785584308464475 18.85526853956442
+  near 1
+  followType "None"
+  followSmoothness 0.05
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+DEF SlantRoad SafetyEdge {
+  height 0
+}
+Robot {
+  controller "closeloop_jump_supervisor"
+  supervisor TRUE
+}
+DEF PTW WeBikes {
+  bicycle_shape FALSE
+  motorcycle_shape TRUE
+  BikeRotation 0 0 1 0
+  BikePosition 0.36 0 0
+  mrf 158.1
+  hrf 0.5186
+  xrf 0.6888
+  b 1.4478
+  c 0.115
+  lambda 1.1
+  rrw 0.33
+  mfw 10
+  mrw 13
+  mff 10
+  tireRadiusF 0.05
+  tireRadiusR 0.06
+  Xff 1.25
+  use_suspension TRUE
+  springRate_front 30000
+  measured_sag_front 0.025
+  jounce_front 0.06333012399764275
+  wheelRate_rear 60000
+  jounce_rear 0.11170839115825015
+  controller "closeloop_jump"
+  useowninertial [
+    0 0 0
+    0 0 0
+  ]
+}
+DEF TabletopJump TabletopJump {
+  roadPosition 28.74 0 0
+  t_takeoff 0.7
+  R 10
+  D 20
+}

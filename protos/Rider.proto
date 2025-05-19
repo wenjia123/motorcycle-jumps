@@ -1,0 +1,160 @@
+#VRML_SIM R2022a utf8
+# template language: javascript
+PROTO Rider[
+  field SFString solidName "Rider"
+  field SFString AnkleMotorName "AnkleMotor"
+  field SFString KneeMotorName "KneeMotor"
+  field SFString HipMotorName "HipMotor"
+  field SFVec3f     RiderPos          0.7 0 0.35
+  field SFVec3f     KneeJoint          0.7 0 0.35
+  field SFVec3f     hipJoint          -0.2 0 0.5
+  field SFVec3f     shinPoint1l       0 0.2 0
+  field SFVec3f     shinPoint2l       0 0.2 0.25
+  field SFVec3f     shinPoint1r       0 -0.2 0
+  field SFVec3f     shinPoint2r       0 -0.2 0.25
+  field SFVec3f     thighPoint2l       -0.2 0.2 0.5
+  field SFVec3f     thighPoint2r       -0.2 -0.2 0.5
+  field SFVec3f     torsoPoint1        -0.2 0 0.5
+  field SFVec3f     torsoPoint2       -0.1 0 1
+  field SFFloat     shinMass           1.75
+  field SFFloat     thighMass           5
+  field SFFloat     torsoMass           35
+  field SFFloat     riderMass           70
+
+
+
+]
+
+{
+  #overall javascript calculations for proto-wide definitions
+  %<
+  //import webots geometry library so we can interpret fields
+  import * as wbgeometry from 'wbgeometry.js';
+
+  console.log()
+
+  //strings for naming convention
+  let solidName = fields.solidName.value;
+  let shinPoint1l = fields.shinPoint1l.value;
+  let shinPoint2l = fields.shinPoint2l.value;
+  let shinPoint1r = fields.shinPoint1r.value;
+  let shinPoint2r = fields.shinPoint2r.value;
+  let RiderPos = fields.RiderPos.value;
+  let ankleMotor = fields.AnkleMotorName.value;
+  let KneeJoint = fields.KneeJoint.value;
+  let KneeMotor = fields.KneeMotorName.value;
+  let HipMotor =  fields.HipMotorName.value;
+ >%
+
+ DEF %<=solidName>% Solid {
+   translation IS RiderPos
+   children [
+     Shape {
+       geometry Sphere {
+         radius 0.05
+       }
+     }
+     HingeJoint {
+       jointParameters HingeJointParameters {
+         axis 0 1 0
+       }
+       device [
+       RotationalMotor {
+         name "%<=ankleMotor>%"
+         controlPID 1000 0 0
+         maxVelocity 10000
+         maxTorque 10000
+       }
+       ]
+       endPoint Solid {
+         rotation 0 1 0 0
+         children [
+           Group {
+             children [
+             DEF left_shin Rod{
+             solidName "leftshinRod"
+             Point1 IS shinPoint1l
+             Point2 IS shinPoint2l
+             Mass IS shinMass
+             }
+             DEF right_shin Rod{
+             solidName "rightshinRod"
+             Point1 IS shinPoint1r
+             Point2 IS shinPoint2r
+             Mass IS shinMass
+             }
+               HingeJoint {
+                 jointParameters HingeJointParameters {
+                   axis 0 1 0
+                   anchor IS Kneejoint
+                 }
+                 device [
+                 RotationalMotor {
+                   name "%<=KneeMotor>%"
+                   controlPID 1000 0 0
+                   maxVelocity 10000
+                   maxTorque 10000
+                 }
+                 ]
+                 endPoint Solid {
+                   children [
+                     Group {
+                       children [
+                       DEF left_thigh Rod{
+                       solidName "leftthighRod"
+                       Point1 IS shinPoint2l
+                       Point2 IS thighPoint2l
+                       mass IS thighMass
+                       }
+                       DEF right_thigh Rod{
+                       solidName "rightthighRod"
+                       Point1 IS shinPoint2r
+                       Point2 IS thighPoint2r
+                       mass IS thighMass
+
+                       }
+                         HingeJoint {
+                           jointParameters HingeJointParameters {
+                             axis 0 1 0
+                             anchor IS hipJoint
+                           }
+                           device [
+                           RotationalMotor {
+                             name "%<=HipMotor>%"
+                             controlPID 1000 0 0
+                             maxVelocity 10000
+                             maxTorque 10000
+                           }
+                           ]
+                           endPoint Solid {
+                           children [
+                           DEF torso Rod{
+                           solidName "torsoRod"
+                           Point1 IS torsoPoint1
+                           Point2 IS torsoPoint2
+                           mass IS torsoMass
+                           }
+                           ]
+                           }
+                         }
+                       ]
+                     }
+                   ]
+                   name "thigh"
+                 }
+               }
+             ]
+           }
+         ]
+         name "shin"
+       }
+     }
+   ]
+   name "%<=solidName>%"
+
+   physics Physics {
+   mass IS riderMass
+   density -1
+   }
+ }
+}

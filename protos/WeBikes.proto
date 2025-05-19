@@ -1,0 +1,686 @@
+#VRML_SIM R2023a utf8
+# template language: javascript
+PROTO  WeBikes [
+  field SFBool bicycle_shape TRUE
+  field SFBool motorcycle_shape FALSE
+  field SFRotation BikeRotation 1 0 0 0
+  field SFVec3f    BikePosition 0 0 0
+  field SFFloat    mrf   200
+  field SFFloat    hrf  0.9
+  field SFFloat    xrf            0.51
+  field SFFloat    b            1.02
+  field SFFloat    c            0.08
+  field SFFloat    lambda       1.25
+  field SFFloat    rfw  0.35
+  field SFFloat    rrw   0.3
+  field SFFloat    mfw     3
+  field SFFloat    mrw    3
+  field SFFloat    mff   1
+  field SFFloat    tireRadiusF   .02
+  field SFFloat    tireRadiusR  .02
+  field SFFloat    Xff          0.9
+  field SFFloat    hff          0.7
+  field SFBool     use_suspension FALSE
+  field SFFloat    springRate_front 10000
+  field SFFloat    damping_front    1000
+  field SFFloat    suspension_travel_front 0.3
+  field SFFloat    measured_sag_front 0.01
+  field SFFloat    jounce_front 0
+  field SFVec3f    swingarm_pivot  .51 0 0.45
+  field SFFloat    wheelRate_rear  20000
+  field SFFloat    damping_rear    2000
+  field SFFloat    suspension_travel_rear 0.3
+  field SFFloat    measured_sag_rear 0.105
+  field SFFloat    jounce_rear 0
+  field MFNode     Addon []
+  field SFString   controller "Bicycle_controller"
+  field SFString   name "Bicycle"
+  field SFBool customized_inertiaMatrix FALSE
+  field MFVec3f useowninertial  0 0 0
+
+]
+{
+ %<
+    import * as wbgeometry from 'wbgeometry.js';
+    import * as wbrandom from 'wbrandom.js';
+    import * as wbvector2 from 'wbvector2.js';
+
+    let FR = fields.rfw.value;
+    let RR = fields.rrw.value;
+    let H = fields.hrf .value;
+    let A = fields.xrf.value;
+    let L = fields.lambda.value;
+    let B = fields.b.value;
+    let C = fields.c.value;
+    let Tf = fields.tireRadiusF.value;
+    let Tr = fields.tireRadiusR.value;
+    let XF = fields.Xff.value;
+    let ZF = fields.hff.value;
+    let bicycleShape = fields.bicycle_shape.value;
+    let motorcycleShape = fields.motorcycle_shape.value;
+    let forkRadius = .01;
+    if(motorcycleShape){
+      forkRadius = 0.025;
+    }
+    let useSuspension = fields.use_suspension.value;
+    let useinertialMatrix = fields.customized_inertiaMatrix.value;
+    let travelFront = fields.suspension_travel_front.value;
+    let travelRear = fields.suspension_travel_rear.value;
+    //compute transformation from rear wheel rate to rotational spring/damper
+    let swingarmPivot = fields.swingarm_pivot.value;//[fields.swingarm_pivot.value.x,fields.swingarm_pivot.value.y,fields.swingarm_pivotvalue.z];
+    let swingarmLength = Math.sqrt(Math.pow(RR-swingarmPivot.z,2)+Math.pow(swingarmPivot.x,2)+Math.pow(swingarmPivot.y,2))
+    let Stiffness_R = fields.wheelRate_rear.value;
+    let damping_R = fields.damping_rear.value;
+    let RStiffness_R = Math.pow(swingarmLength,2)*Stiffness_R;
+    let RDamping_R = Math.pow(swingarmLength,2)*damping_R;
+
+    //compute free length of rear/front for correct nominal sag
+    let msprung = fields.mrf.value+fields.mff.value;
+    let asprung = (fields.mrf.value*A+fields.mff.value*XF)/(msprung)
+    let Wr = 9.8*msprung*(B-asprung)/B;
+    let Wf = 9.8*msprung*asprung/B;
+    let trueSag_F = Wf*Math.sin(L)/(fields.springRate_front.value);
+    let trueSag_R = (Wr/(Stiffness_R));
+    let measuredSag_F = fields.measured_sag_front.value;
+    let measuredSag_R = fields.measured_sag_rear.value;
+    console.log("jounce_front should read, at steady state:")
+    console.log(trueSag_F)
+    console.log("jounce_rear should read, at steady state:")
+    console.log(trueSag_R/swingarmLength)
+  function motorcycleRearFrame(b,a,Rfw,Rrw,lambda){
+  this.b = b;
+  this.a = a;
+  this.Rrw = Rrw;
+  this.Rfw = Rfw;
+  this.wid = 0.2
+  this.lam=lambda;
+
+  this.vertices = []//this will hold all xyz points of the road
+  this.coordIndices = []//this is a list of triangles defined by the indices in the 'vertices' list.
+
+  this.createVertices = function(){
+    let x0 = 0;
+    let z0 = 3*this.Rrw;//tip of back fender
+    let x1 = this.a;
+    let z1 = 2*this.Rrw;//fender meets frame above footpegs
+    let x2 = this.a;
+    let z2 = 1.414*2*this.Rrw;//middle of seat above footpegs
+    let x3 = this.a;
+    let z3 = this.Rrw;//lowest point on frame; footpegs
+    let x4 = this.b-this.Rfw;
+    let z4 = 3*this.Rfw;//steering pivot allows 1 radius of wheel travel.
+    let x5 = this.b-1.5*this.Rfw;//front bottom of frame
+    let z5 = this.Rrw;
+    let xside = [x0,x1,x2,x3,x4,x5];
+    let zside = [z0,z1,z2,z3,z4,z5];
+    //push vertices for left side of bike
+    for (let i=0;i<6;i++){
+      this.vertices.push([xside[i],this.wid/2,zside[i]])
+    }
+    //do same for right side of bike.
+    for (let i=0;i<6;i++){
+      this.vertices.push([xside[i],-this.wid/2,zside[i]])
+    }
+  }
+  this.createTriangles = function(){
+      this.createVertices();
+      //rear fender triangle
+      this.coordIndices.push([0,1,2]);
+      //seat to steer to footpegs triangle
+      this.coordIndices.push([2,3,4]);
+      //engine cradle triangle
+      this.coordIndices.push([3,5,4]);
+      //repeat for other side:
+      //rear fender triangle
+      this.coordIndices.push([6,7,8]);
+      //seat to steer to footpegs triangle
+      this.coordIndices.push([8,9,10]);
+      //engine cradle triangle
+      this.coordIndices.push([9,11,10]);
+      this.coordIndices.push([2,1,0]);
+      //seat to steer to footpegs triangle
+      this.coordIndices.push([4,3,2]);
+      //engine cradle triangle
+      this.coordIndices.push([4,5,3]);
+      //repeat for other side:
+      //rear fender triangle
+      this.coordIndices.push([8,7,6]);
+      //seat to steer to footpegs triangle
+      this.coordIndices.push([10,9,8]);
+      //engine cradle triangle
+      this.coordIndices.push([10,11,9]);
+      //now create triangles for seat
+      this.coordIndices.push([0,6,2]);
+      this.coordIndices.push([6,8,2]);
+      this.coordIndices.push([2,6,0]);
+      this.coordIndices.push([2,8,6]);
+      //create triangles for gas tank
+      this.coordIndices.push([2,8,4]);
+      this.coordIndices.push([8,10,4]);
+      //create triangles for front face of frame
+      this.coordIndices.push([4,10,5]);
+      this.coordIndices.push([5,10,11]);
+      //create triangles for bottom face of frame
+      this.coordIndices.push([5,11,3]);
+      this.coordIndices.push([3,11,9]);
+      //create triangles for mud guard
+      this.coordIndices.push([8,2,3]);
+      this.coordIndices.push([3,9,8])
+
+  }
+
+}
+
+  var myFrame = new motorcycleRearFrame(B,A,FR,RR,L)
+  myFrame.createTriangles();
+
+ >%
+
+ DEF WeBikes Robot {
+  rotation IS BikeRotation
+  translation IS BikePosition
+  children [
+InertialUnit {
+      name "imu"
+    }
+    GPS {
+    }
+    Gyro {
+    }
+    Accelerometer{
+      name "accelerometer1"
+    }
+  Transform {
+      translation 0 0 0
+      children IS Addon
+    }
+
+    DEF steer_axis HingeJoint {
+      jointParameters HingeJointParameters {
+        axis %<= -Math.cos(L) >% 0 %<= Math.sin(L) >%
+        anchor %<= B - (FR / Math.tan(L) - C) >% 0 %<= FR >%
+        minStop -0.5
+        maxStop 0.5
+      }
+      device [
+        DEF steer_angle PositionSensor {
+          name "steer_angle"
+        }
+        DEF steering_motor RotationalMotor {
+          name "steering_motor"
+          controlPID 100 0 0
+          maxTorque 10000
+        }
+      ]
+      endPoint DEF fork Solid {
+        translation %<= XF >% 0 %<=ZF>%
+        rotation %<= -Math.cos(L) >% 0 %<= Math.sin(L) >% 0
+                 children [
+          DEF fork_centermass Shape {
+            geometry Sphere {
+              radius 0.02
+            }
+          }
+       Gyro {
+            name "steergyro"
+          }
+
+       DEF fork_body Group{
+
+    children[
+DEF ForktR Transform {
+        translation %<= 0 >% %<=-Tf-2*forkRadius >% %<=0 >%
+        rotation 0 1 0 %<= L-1.57 >%
+        children [
+             Shape {
+appearance PBRAppearance {
+                baseColor 0.961 0.961 0.961
+              }
+              geometry Cylinder {
+                height %<= 1.7*FR >%
+                radius %<=forkRadius>%
+              }
+            }
+          ]
+        }
+        DEF ForkL Transform {
+          translation %<= 0 >% %<=Tf+2*forkRadius >% %<= 0 >%
+          rotation 0 1 0 %<= L-1.57 >%
+          children [
+             Shape {
+appearance PBRAppearance {
+                baseColor 0.961 0.961 0.961
+              }
+              geometry Cylinder {
+                height %<= 1.7*FR >%
+                radius %<= forkRadius>%
+              }
+            }
+          ]
+        }
+
+          ]
+}
+          %< if(!useSuspension) { >%
+          DEF front_wheel HingeJoint {
+            jointParameters HingeJointParameters {
+              axis 0 1 0
+              anchor %<= B-XF >% 0 %<= -(ZF-FR) >%
+            }
+            device [
+              DEF wheel_front_sensor PositionSensor {
+                name "wheel_front_sensor"
+              }
+            ]
+            endPoint SolidTorus {
+              translation %<= B-XF >% 0 %<= -(ZF-FR) >%
+              rotation 1 0 0 1.57
+              majorRadius %<=FR-Tf>%
+              minorRadius IS tireRadiusF
+              subdivision 240
+              appearance DEF bikecolor PBRAppearance {
+                baseColor 0.105882 0.105882 0.105882
+                roughness 0.5
+                metalness 0
+              }
+              physics Physics {
+                mass IS mfw
+%< if(!useinertialMatrix) { >%
+          inertiaMatrix IS useowninertial
+     %< }
+    else{ >%
+          inertiaMatrix IS inertiaMatrix []
+      %< }
+>%
+              }
+            }
+          }
+          %< } else{ >%
+          DEF fork_slider SliderJoint{
+            jointParameters JointParameters {
+              position IS jounce_front
+              axis %<=-Math.cos(L)>% 0 %<=Math.sin(L)>%
+              minStop %<=trueSag_F-measuredSag_F>%
+              maxStop %<=travelFront+trueSag_F>%
+              springConstant IS springRate_front
+              dampingConstant IS damping_front
+            }
+            device[
+              DEF front_wheel_jounce PositionSensor{
+                name "front_wheel_jounce_sensor"
+              }
+            ]
+            endPoint DEF lower_fork Solid{
+              children[
+              DEF front_wheel HingeJoint {
+                jointParameters HingeJointParameters {
+                  axis 0 1 0
+                  anchor %<= B-XF+Math.cos(L)*trueSag_F >% 0 %<= -(ZF-FR)-Math.sin(L)*trueSag_F >%
+                }
+                device [
+                  DEF wheel_front_sensor PositionSensor {
+                    name "wheel_front_sensor"
+                  }
+                ]
+                endPoint SolidTorus {
+                  translation %<= B-XF+Math.cos(L)*trueSag_F >% 0 %<= -(ZF-FR)-Math.sin(L)*trueSag_F >%
+                  rotation 1 0 0 1.57
+                  majorRadius %<=FR-Tf>%
+                  minorRadius IS tireRadiusF
+                  subdivision 240
+                  appearance DEF bikecolor PBRAppearance {
+                    baseColor 0.105882 0.105882 0.105882
+                    roughness 0.5
+                    metalness 0
+                    transparency 0
+                  }
+                  physics Physics {
+                    mass IS mfw
+%< if(!useinertialMatrix) { >%
+          inertiaMatrix IS useowninertial
+     %< }
+    else{ >%
+          inertiaMatrix IS inertiaMatrix []
+      %< }
+>%
+                  }
+                }
+              }
+              ]
+              boundingObject USE fork_centermass
+              physics Physics{
+                mass 0.1
+              }
+            }
+          }
+          %< } >%
+        ]
+        name "solid(1)"
+        boundingObject USE fork_centermass
+        physics Physics {
+          mass IS mff
+        }
+      }
+    }
+
+
+    %<if(!useSuspension){ >%
+    DEF rear_axis HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 1 0
+        anchor 0 0 %<= RR >%
+      }
+      device [
+        DEF rear_wheel_pos PositionSensor {
+          name "rear_wheel_pos_sensor"
+        }
+        DEF drive_motor RotationalMotor {
+          name "drive_motor"
+          controlPID 100000 0 0
+          maxVelocity 1000
+          maxTorque 10000
+        }
+        DEF rear_brake Brake {
+          name "rear_brake"
+        }
+      ]
+      endPoint SolidTorus {
+        translation 0 0 %<= RR >%
+        rotation 1 0 0 1.57
+        majorRadius %<=RR-Tr>%
+        minorRadius IS tireRadiusR
+        subdivision 240
+        castShadows FALSE
+        appearance DEF bikecolor PBRAppearance {
+          baseColor 0.106 0.106 0.106
+          roughness 0.5
+          metalness 0
+
+        }
+        physics Physics {
+          mass IS mrw
+     %< if(!useinertialMatrix) { >%
+          inertiaMatrix IS useowninertial
+     %< }
+    else{ >%
+          inertiaMatrix IS inertiaMatrix []
+      %< }
+>%
+        }
+      }
+    }
+    %< }else{ >%
+      DEF swingarm_axis HingeJoint{
+          jointParameters DEF rear_susp_joint HingeJointParameters{
+              axis 0 1 0
+              minStop %<=(trueSag_R-measuredSag_R)/swingarmLength >%
+              maxStop %<=(trueSag_R+travelRear)/swingarmLength>%
+              position IS jounce_rear
+              anchor IS swingarm_pivot
+              springConstant %<=RStiffness_R >%
+              dampingConstant %<=RDamping_R >%
+          }
+          device[
+            DEF swingarm_pos PositionSensor{
+              name "swingarm_pos_sensor"
+            }
+          ]
+          endPoint DEF swingarm_solid Solid{
+              name "swingarm_solid"
+              translation IS swingarm_pivot
+              children[
+              DEF rear_axis HingeJoint {
+                jointParameters HingeJointParameters {
+                  axis 0 1 0
+                  anchor %<=-swingarmPivot.x >% 0 %<= -swingarmPivot.z + RR-trueSag_R >%
+                }
+                device [
+                  DEF rear_wheel_pos PositionSensor {
+                    name "rear_wheel_pos_sensor"
+                  }
+                  DEF drive_motor RotationalMotor {
+                    name "drive_motor"
+                    controlPID 100000 0 0
+                    maxVelocity 1000
+                    maxTorque 10000
+                  }
+                  DEF rear_brake Brake {
+                    name "rear_brake"
+                  }
+                ]
+                endPoint SolidTorus {
+                  translation %<=-swingarmPivot.x >% 0 %<= -swingarmPivot.z+RR-trueSag_R >%
+                  rotation 1 0 0 1.57
+                  majorRadius %<=RR-Tr>%
+                  minorRadius IS tireRadiusR
+                  subdivision 240
+                  castShadows FALSE
+                  appearance DEF bikecolor PBRAppearance {
+                    baseColor 0.106 0.106 0.106
+                    roughness 0.5
+                    metalness 0
+
+                  }
+                  physics Physics {
+                    mass IS mrw
+   %< if(!useinertialMatrix) { >%
+          inertiaMatrix IS useowninertial
+     %< }
+    else{ >%
+          inertiaMatrix IS inertiaMatrix []
+      %< }
+>%
+                  }
+                }
+              }
+              ]
+              boundingObject USE fork_centermass
+              physics Physics{
+                mass 0.1
+              }
+          }
+
+      }
+    %< } >%
+    DEF centermass Solid {
+      translation %<= A >% 0 %<= H >%
+      children [
+
+        DEF centermass_shape Shape {
+          geometry Sphere {
+            radius 0.01
+            subdivision 3
+          }
+        }
+      ]
+      boundingObject USE centermass_shape
+      physics Physics {
+        mass IS mrf
+      }
+    }
+    %<if(bicycleShape){>%
+    Group {
+      children [
+        DEF RearframeParallelL Transform {
+          translation %<= (0.5*B) / 2  >% 0.04 %<= RR >%
+          rotation 0 1 0 1.57
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.961 0.961 0.961
+              }
+              geometry Cylinder {
+                height %<= 0.5*B >%
+                radius 0.01
+              }
+            }
+          ]
+        }
+        DEF RearframeParallelR Transform {
+          translation %<= (0.5*B) / 2  >% -0.04 %<= RR >%
+          rotation 0 1 0 1.57
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.961 0.961 0.961
+              }
+              geometry Cylinder {
+                height %<= 0.5*B >%
+                radius 0.01
+              }
+            }
+          ]
+        }
+
+        DEF rearframeL Transform {
+          translation %<= (0.589*B*Math.sin(0.6)) / 2 >% 0.04 %<= (0.589*B*Math.cos(0.6)) / 2+RR >%
+          rotation 0 1 0 0.6
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.961 0.961 0.961
+              }
+              geometry Cylinder {
+                height %<= 0.589*B >%
+                radius 0.01
+              }
+            }
+          ]
+        }
+        DEF rearframeR Transform {
+          translation %<= (0.589*B*Math.sin(0.6)) / 2 >% -0.04 %<= (0.589*B*Math.cos(0.6)) / 2+RR >%
+          rotation 0 1 0 0.6
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.961 0.961 0.961
+              }
+              geometry Cylinder {
+                height %<= 0.589*B >%
+                radius 0.01
+              }
+            }
+          ]
+        }
+
+        DEF forkframeL Transform {
+          translation %<= (0.589*B*Math.sin(0.6)) / 2+ 0.5*B >% .02 %<= (0.589*B*Math.cos(0.6)) / 2+RR >%
+          rotation %<= Math.sin(Math.atan(0.04 / (0.5*B))) >% 1 0 0.6
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.961 0.961 0.961
+                metalness 0.1
+              }
+              geometry Cylinder {
+                height %<= 0.589*B >%
+                radius .01
+              }
+            }
+          ]
+        }
+        DEF forkframeR Transform {
+          translation %<= (0.589*B*Math.sin(0.6)) / 2+ 0.5*B >% .02 %<= (0.589*B*Math.cos(0.6)) / 2+RR >%
+          rotation %<= -Math.sin(Math.atan(0.04 / (0.5*B))) >% 1 0 0.6
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.961 0.961 0.961
+                metalness 0.1
+              }
+              geometry Cylinder {
+                height %<= 0.589*B >%
+                radius .01
+              }
+            }
+          ]
+        }
+        DEF topParallelL Transform {
+          translation %<= (0.5*B) / 2+0.589*B*Math.sin(0.6) >% 0.02 %<= RR+0.589*B*Math.cos(0.6) >%
+          rotation %<= Math.sin(Math.atan(0.04 / (0.5*B))) >% 1 0 1.57
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.961 0.961 0.961
+              }
+              geometry Cylinder {
+                height %<= 0.5*B >%
+                radius 0.01
+              }
+            }
+          ]
+        }
+        DEF topParallelR Transform {
+          translation %<= (0.5*B) / 2+0.589*B*Math.sin(0.6) >% -0.02 %<= RR+0.589*B*Math.cos(0.6) >%
+          rotation %<= -Math.sin(Math.atan(0.04 / (0.5*B))) >% 1 0 1.57
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.961 0.961 0.961
+              }
+              geometry Cylinder {
+                height %<= 0.5*B >%
+                radius 0.01
+              }
+            }
+          ]
+        }
+        DEF middleguy Transform {
+          translation %<= 0.5*B-(0.5*B)*Math.sin(Math.atan( (0.5*B-0.589*B*Math.sin(0.6)) / (0.589*B*Math.cos(0.6)) )) / 2 >% 0 %<= RR+(0.5*B)*Math.cos(Math.atan( (0.5*B-0.589*B*Math.sin(0.6)) / (0.589*B*Math.cos(0.6)) )) / 2>%
+          rotation 0 1 0 %<= -Math.atan( (0.5*B-0.589*B*Math.sin(0.6)) / (0.589*B*Math.cos(0.6)) ) >%
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.961 0.961 0.961
+              }
+              geometry Cylinder {
+                height %<= 0.5*B >%
+                radius 0.02
+              }
+            }
+          ]
+        }
+      ]
+    }
+    %< }>%
+    %<if(motorcycleShape){>%
+      Shape{
+      appearance Appearance{
+        material Material{
+          diffuseColor 0.2 0.5 0.2
+        }
+      }
+      geometry IndexedFaceSet{
+      coord Coordinate{
+        point[
+          %< for (let i = 0; i < myFrame.vertices.length; ++i) { >%
+          %<= myFrame.vertices[i][0] >% %<= myFrame.vertices[i][1] >% %<= myFrame.vertices[i][2] >%
+          %< } >%
+        ]
+      }
+      coordIndex[ %<for (let i = 0; i < myFrame.coordIndices.length; ++i) { >%
+      %<= myFrame.coordIndices[i][0] >% %<= myFrame.coordIndices[i][1] >% %<= myFrame.coordIndices[i][2] >% -1
+        %<}>%
+      ]
+      }
+      }
+    %<}>%
+  ]
+  name "bike"
+  boundingObject Transform {
+    translation %<= A >% 0 %<= H >%
+    children[
+    USE centermass_shape
+]
+  }
+  physics Physics {
+    mass 1
+    centerOfMass [
+      %<= A >% 0 %<= H >%
+    ]
+
+  }
+  controller IS controller
+  name IS name
+}
+}

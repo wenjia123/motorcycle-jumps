@@ -1,0 +1,216 @@
+#VRML_SIM R2022a utf8
+# Describe the functionality of your PROTO here.
+# tags: nonDeterministic
+# template language: javascript
+
+PROTO SafetyEdge [
+  field SFRotation roadRotation 1 0 0 0
+  field SFVec3f    roadPosition 0 0 0
+  field SFFloat rLen 100
+  field SFFloat rW 20
+  field SFFloat slantN 50
+  field SFFloat angle 90
+  field SFFloat height 4
+  field SFFloat edgePosition 1
+]
+{
+%<
+    //import webots geometry library so we can interpret fields
+    import * as wbgeometry from 'wbgeometry.js';
+
+  // Save variables from proto
+  let myrLen = fields.rLen.value;
+  let myrW = fields.rW.value;
+  let myslantN = fields.slantN.value;
+  let myangle = fields.angle.value;
+  let myheight = fields.height.value;
+  let edge_pos = fields.edgePosition.value;
+
+    function straightSlantRoad(rLen, rW, slantN, angle, height) {
+    this.rLen = rLen;
+    this.rW = rW;
+    this.slantN = slantN;
+    this.angle = angle/57.2957795 ;
+    this.height = height*.0254;
+    this.vertices = []; //this will hold all xyz points of the road
+    this.coordIndices = []; //this is a list of triangles defined by the indices in the 'vertices' list.
+
+    this.createSlice = function(xnow) {
+      //create y-z slice of road points. start empty
+      let roadslice = [];
+      const safetyWidth = this.rW / 2;
+      //push adds something to a list. Add the left edge.
+      //each point will be a list in and of itself... [x,y,z]
+      roadslice.push([xnow, safetyWidth, 0]);
+      roadslice.push([xnow, edge_pos, 0]);
+
+      //now actually make points for the slant itself.
+      let ynow;
+      for (let i = 0; i < this.slantN + 1; i++) {
+        if (this.angle === 0) {
+        ynow = -(this.height)/Math.tan(180/57.2957795);
+        } else {
+         ynow = -(this.height)/Math.tan(this.angle);
+         }
+
+        //add this vector of points to the list of vertices in this 'slice' of road.
+        roadslice.push([xnow, ynow + edge_pos, -this.height]);
+      }
+      //now add the left edge
+      roadslice.push([xnow, ynow + edge_pos, -this.height]);
+      roadslice.push([xnow, -safetyWidth, -this.height]);
+      //this function returns the 'slice' of the road, a list of 3-vectors describing each vertex.
+      return roadslice;
+    }
+    //this function creates ALL the vertices for ALL the slices in our road segment.
+    this.createVertices = function() {
+      //start at 0
+      //xnow = 0;
+      //create a vector to keep track of how many slices we have. could pre-calculate this, but eh.
+      this.num_slices = 0;
+      for (let xnow = 0; xnow <= this.rLen; xnow += this.rLen / 100) {
+        //increment number of slices (we'll need this later for triangles.)
+        this.num_slices++;
+        //use our function above to create the slice
+        var myslice = this.createSlice(xnow);
+        //add the points in this slice to our list.
+        this.vertices = this.vertices.concat(myslice);
+      }
+    }
+
+     this.updateAngle = function(newAngle) {
+      this.angle = newAngle;
+      this.createVertices();
+    }
+
+    this.createTriangles = function() {
+      //first create vertices of our road using the function above.
+      this.createVertices();
+      //now, we have to define a list of triangles, defined by sets of three indices in our vertex array that are connected. like [0,1,2] would mean that vertices 0, 1, and 2 form a triangle.
+
+      //outer for-loop that moves through each slice.
+      for (let slice_ind = 0; slice_ind < (this.num_slices - 1); slice_ind++) {
+        //inner for-loop that moves through each triangle in the slice.
+        //we will always make triangles from the current slice TO the next.
+        //for any point, triangle 1 is defined by 2 points on next slice, and this slice.
+        //for any point, triangle 2 is defined by this point, the point to the right, and then one point on the next slice.
+
+        //first, the for-loop defining 'triangle 1' for each point (except the last one, which is only a member of triangle 2).
+        for (let point_ind = 0; point_ind < (this.slantN + 4); point_ind++) {
+          var offsetThis = slice_ind * (this.slantN + 5);
+          var offsetNext = (slice_ind + 1) * (this.slantN + 5);
+          //this triangle is me, me on the next slice, and neighbor on next slice.
+          //have to be defined in CCW order!
+          var tri = [offsetThis + point_ind, offsetNext + point_ind + 1, offsetNext + point_ind];
+          this.coordIndices.push(tri);
+
+          //now repeat this, but use the pattern: me, my neighbor, and my neighbor on the NEXT slice. This gets us full coverage.
+          //offset the index based on which slice we're working on. on second slice (index 1), the total number of points in one slice must be added to get to the 0'th index for this slice.
+          var offsetThis = slice_ind * (this.slantN + 5);
+          //same thing; find an offset that gets us to the same point in the NEXT slice
+          var offsetNext = (slice_ind + 1) * (this.slantN + 5);
+          //this triangle is me, me on the next slice, and neighbor on next slice.
+          //have to be defined in CCW order!
+          var tri = [offsetThis + point_ind, offsetThis + point_ind + 1, offsetNext + point_ind + 1];
+          this.coordIndices.push(tri);
+        }
+      }
+    }
+  }
+
+  //create a slant road object by using the proto fields
+  var myRoad = new straightSlantRoad(myrLen, myrW, myslantN, myangle, myheight);
+  myRoad.createTriangles();
+>%
+
+DEF SlantRoad Solid {
+  rotation IS roadRotation
+  translation IS roadPosition
+    children [
+      DEF left_lane_road_shape Shape {
+        appearance Appearance {
+        } appearance PBRAppearance {
+            roughness 0.3
+            metalness 0
+            textureTransform TextureTransform {
+            translation 0 20
+            rotation 1.5707963267948966192313216916398
+            scale 20 20
+            }
+            baseColorMap ImageTexture{
+            %< for (let i = 0; i < myRoad.coordIndices.length; i=i+6) { >%
+              url "../textures/road_texture_2.jpg"
+               %< } >%
+               filtering 5
+           }
+        }
+        geometry IndexedFaceSet {
+        coord Coordinate {
+            point [
+                %< for (let i = 0; i < myRoad.vertices.length; ++i) { >%
+                %<= myRoad.vertices[i][0] >% %<= myRoad.vertices[i][1] >% %<= myRoad.vertices[i][2] >%
+                %< } >%
+            ]
+        }
+        coordIndex [
+            %<for (let i = 0; i < myRoad.coordIndices.length; i=i+6) { >%
+            %<= myRoad.coordIndices[i][0] >% %<= myRoad.coordIndices[i][1] >% %<= myRoad.coordIndices[i][2] >% -1
+            %<= myRoad.coordIndices[i+1][0] >% %<= myRoad.coordIndices[i+1][1] >% %<= myRoad.coordIndices[i+1][2] >% -1
+            %<}>%
+        ]
+        }
+      }
+      DEF right_lane_road_shape Shape {
+        appearance Appearance {
+        } appearance PBRAppearance {
+            roughness 0.3
+            metalness 0
+            textureTransform TextureTransform {
+            scale 100 100
+            }
+            baseColorMap ImageTexture{
+              url "../textures/road_texture_2.jpg"
+           }
+        }
+        geometry IndexedFaceSet {
+        coord Coordinate {
+            point [
+                %< for (let i = 0; i < myRoad.vertices.length; ++i) { >%
+                %<= myRoad.vertices[i][0] >% %<= myRoad.vertices[i][1] >% %<= myRoad.vertices[i][2] >%
+                %< } >%
+            ]
+        }
+        coordIndex [
+            %<for (let i = 0; i < myRoad.coordIndices.length; i=i+6) { >%
+            %<= myRoad.coordIndices[i+2][0] >% %<= myRoad.coordIndices[i+2][1] >% %<= myRoad.coordIndices[i+2][2] >% -1
+            %<= myRoad.coordIndices[i+3][0] >% %<= myRoad.coordIndices[i+3][1] >% %<= myRoad.coordIndices[i+3][2] >% -1
+            %<= myRoad.coordIndices[i+4][0] >% %<= myRoad.coordIndices[i+4][1] >% %<= myRoad.coordIndices[i+4][2] >% -1
+            %<= myRoad.coordIndices[i+5][0] >% %<= myRoad.coordIndices[i+5][1] >% %<= myRoad.coordIndices[i+5][2] >% -1
+            %<}>%
+        ]
+        }
+      }
+      DEF road_shape Shape {
+        appearance Appearance {
+        } appearance PBRAppearance {
+            transparency 1
+        }
+        geometry IndexedFaceSet {
+          coord Coordinate {
+            point [
+              %< for (let i = 0; i < myRoad.vertices.length; ++i) { >%
+              %<= myRoad.vertices[i][0] >% %<= myRoad.vertices[i][1] >% %<= myRoad.vertices[i][2] >%
+              %< } >%
+            ]
+          }
+          coordIndex [
+            %<for (let i = 0; i < myRoad.coordIndices.length; ++i) { >%
+            %<= myRoad.coordIndices[i][0] >% %<= myRoad.coordIndices[i][1] >% %<= myRoad.coordIndices[i][2] >% -1
+            %<}>%
+          ]
+        }
+      }
+    ]
+    boundingObject USE road_shape
+  }
+}
