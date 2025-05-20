@@ -33,7 +33,7 @@ step_time = 3
 #names of the parameters in the model, in the correct order.
 param_names = ['a ','b ','c','hrf','mrf','xff','zff','mff','Rfw','mfw','Rrw','mrw','Jyyf','Jyyr','lam']
 #parameters of the DR250
-MC_params = array([.6888,1.45,0.115,0.5186,158.1,1.25,0.7347,10,0.356,10,0.33,13,0.6657066,0.6554166,1.1])
+MC_params = array([.6888,1.45,0.115,0.5186,88,1.25,0.7347,10,0.356,10,0.33,13,0.6657066,0.6554166,1.1])
 
 ##### do eigenvalue study for debugging if necessary ######
 if(showPlots):
@@ -54,8 +54,8 @@ if(showPlots):
 #use our model in MC_Model.py to get the appropriate controller
 KLQR,sys = getLQRy(driveVelocity,Q=Qlqr,R=Rlqr,params=MC_params)
 Klqr = ravel(KLQR)
-print("Klqr: "+str(KLQR))
-print(Klqr)
+#print("Klqr: "+str(KLQR))
+#print(Klqr)
 if showPlots:
     yout,tout = cnt.step(sys)
     yout*=step_mag
@@ -87,11 +87,40 @@ def setDriveMotorTorque(self,motor,command,omega):
 
 if recordData:
     # start a file we can use to collect data
-    f = open('../scripts/openloop2__suspension_webots_data.txt','w')
+    f = open('../../scripts/openloop_jump/openloop_rider_stright_webots_data.txt','w')
     #f.write("#time,pitchRate,pitchangle,speed\r\n")
 
+l1 = np.sqrt(0.2**2+0.25**2) # THIGH_LENGTH
+l2 = np.sqrt(0.05**2+0.25**2)   # TORSO_LENGTH
+theta1_rest = np.arctan(0.25/0.2)  # the rest knee angle
+theta2_rest = np.pi-theta1_rest-np.arctan(0.25/0.05)
+
+Px_rest = l1*np.cos(theta1_rest)+l2*np.cos(theta1_rest+theta2_rest)
+Py_rest = l1*np.sin(theta1_rest)+l2*np.sin(theta1_rest+theta2_rest)
+
+# desired position of P:
+Px_target = Px_rest
+Py_target = Py_rest
+
+def inverseK(Px, Py, l1, l2):
+    
+    d = np.sqrt(Px**2+Py**2)
+    theta1=np.arctan(Py/Px)-np.arccos((-l2**2+l1**2+d**2)/(2*l1*d))
+    theta2=3.14159-np.arccos((-d**2+l1**2+l2**2)/(2*l1*l2))
+    return theta1, theta2
+    
 # get the time step of the current world.
 timestep = int(robot.getBasicTimeStep())
+
+hip_motor = robot.getDevice("HipMotor")
+knee_motor = robot.getDevice("KneeMotor")
+hip_motor.enableTorqueFeedback(timestep)
+knee_motor.enableTorqueFeedback(timestep)
+hip_motor.setPosition(theta2_rest)
+knee_motor.setPosition(theta1_rest)
+theta1, theta2 = inverseK(Px_target, Py_target, l1, l2)
+
+
 
 # get the handles to the sensors and actuators on the robot
 motor = robot.getDevice('drive_motor')
@@ -173,13 +202,14 @@ while robot.step(timestep) != -1 and simtime<=12:
     steerangle = steersensor.getValue()
     steerRate = (steerangle-oldsteer)/(timestep/1000.0)
     oldsteer = steerangle
-
+    print(U,driveVelocity)
     ################### FINISH READING SENSORS, BEGIN  lane control ##########
     #now figure out the commanded rear wheel angular velocity
     driveOmega = driveVelocity/MC_params[10]
     #now set to that velocity (TODO make speed controller!)
     motor.setVelocity(driveOmega)
-
+    knee_motor.setPosition(theta1-theta1_rest)
+    hip_motor.setPosition(theta2-theta2_rest)
     #update goal Y as appropriate:
     stepVal = 0
     if(simtime>=step_time):
@@ -206,7 +236,7 @@ while robot.step(timestep) != -1 and simtime<=12:
 
         # print("speed = "+str(U)+", Tq: "+str(T)+", prev error: "+str(prev_y[0])+", yaw error: "+str(yawError)+", yaw: "+str(yaw)+", goalYaw: "+str(goalYaw) )
         sensorValue = wheelsensor.getValue()
-        print(sensorValue)
+        #print(sensorValue)
         #print("U: "+str(U)+", roll: "+str(roll)+", steer: "+str(steerangle)+", T="+str(T))
         # print("Torque: "+str(T))
         steer.setControlPID(0.0001,0,0)

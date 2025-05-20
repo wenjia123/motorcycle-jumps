@@ -42,7 +42,7 @@ DEF SlantRoad SafetyEdge {
   height 0
 }
 Robot {
-  controller "1_openloop_validation_bicycle_supervisor"
+  controller "closeloop_jump_supervisor"
   supervisor TRUE
 }
 DEF PTW WeBikes {
@@ -74,7 +74,7 @@ DEF PTW WeBikes {
     DEF Rider Rider {
     }
   ]
-  controller "openloop_riderjump"
+  controller "closeloop_jump_rider"
   useowninertial [
     0 0 0
     0 0 0

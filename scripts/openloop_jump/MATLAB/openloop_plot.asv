@@ -1,0 +1,30 @@
+clc;
+clear all;
+close all;
+d = load('openloop_rider_forward0.05_webots_data.txt');
+d1 = load('openloop_rider_backward0.1_webots_data.txt');
+d2 = load('openloop_rider_stright_webots_data.txt');
+d4 = load('closeloop_pd_rider_stright_webots_data.txt');
+t = d(:,1);
+t1 = d1(:,1);
+t2 = d2(:,1);
+susp = d(:,5);
+susp1 = d1(:,5);
+susp2 = d2(:,5);
+pitch = d(:,3);
+pitch1 = d1(:,3);
+pitch2 = d2(:,3);
+
+figure 
+plot(t,susp,'k',t1,susp1,'b',t2,susp2,'r');
+legend('rider forward','rider backward','rider stright');
+xlabel('Time(s)');
+ylabel('Suspension compression(m)');
+title('comparsion of Suspension compression under open-loop controller for different rider position');
+
+figure 
+plot(t,pitch,'k',t1,pitch1,'b',t2,pitch2,'r');
+legend('rider forward','rider backward','rider stright');
+xlabel('Time(s)');
+ylabel('pitch angle(rad)');
+title('comparsion of pitch angle under open-loop controller for different rider position');

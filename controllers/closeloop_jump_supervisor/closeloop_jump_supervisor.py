@@ -12,7 +12,7 @@ i = 0
 while robot.step(TIME_STEP) != -1:
   if (i <1000):
     #print(mc_node)
-    mc_node.setVelocity([0,0,0,0,0,0])
+    mc_node.setVelocity([20,0,0,0,0,0])
     #17
   #if i % 500 == 0:
        #robot.exportImage('../scripts/Images/Image_' + str('PI')+str(i) + '.jpg',90)

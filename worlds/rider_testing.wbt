@@ -1,0 +1,66 @@
+#VRML_SIM R2022a utf8
+WorldInfo {
+  info [
+    "Safety Edge Lane Change Simulation"
+  ]
+  title "Safety Edge"
+  CFM 0.0001
+  ERP 0.6
+  basicTimeStep 1
+  lineScale 1
+  contactProperties [
+    ContactProperties {
+      coulombFriction [
+        8
+      ]
+      bounce 0
+      softCFM 0.0003
+    }
+    ContactProperties {
+      material1 "motorcycle_wheel"
+      coulombFriction [
+        8
+      ]
+      bounce 0
+      bounceVelocity 0
+      softCFM 0.01
+    }
+  ]
+}
+Viewpoint {
+  orientation 0.06724756567041802 -0.005435148436720304 -0.997721516292434 4.769779923371396
+  position 1.1267077392076996 -6.155336826913693 1.0686020078300715
+  near 1
+  followType "None"
+  followSmoothness 0.05
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+DEF SlantRoad SafetyEdge {
+  height 0
+}
+Robot {
+  controller "closeloop_jump_supervisor"
+  supervisor TRUE
+}
+DEF TabletopJump TabletopJump {
+  roadPosition 28.74 0 0
+  t_takeoff 0.7
+  R 10
+  D 20
+}
+Robot {
+  children [
+    DEF Rider Rider {
+    }
+  ]
+  name "robot(1)"
+  boundingObject Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+  controller "rider"
+}

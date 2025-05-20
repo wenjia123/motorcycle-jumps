@@ -15,5 +15,5 @@ simtime=0
 while simtime<=12:
     simtime+=TIME_STEP/1000.0
     #if(i <5):
-    mc_node.setVelocity([4.35,0,0,0,0,0])
+    mc_node.setVelocity([10,0,0,0,0,0])
     #i += 1
