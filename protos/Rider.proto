@@ -49,7 +49,7 @@ PROTO Rider[
  DEF %<=solidName>% Solid {
    translation IS RiderPos
    children [
-     DEF rider_shape Shape {
+     Shape {
        geometry Sphere {
          radius 0.05
        }
@@ -59,7 +59,12 @@ PROTO Rider[
          axis 0 1 0
        }
        device [
-
+       RotationalMotor {
+         name "%<=ankleMotor>%"
+         controlPID 1000 0 0
+         maxVelocity 10000
+         maxTorque 10000
+       }
        ]
        endPoint Solid {
          rotation 0 1 0 0
@@ -86,9 +91,9 @@ PROTO Rider[
                  device [
                  RotationalMotor {
                    name "%<=KneeMotor>%"
-                   controlPID 100 0 10
-                   maxVelocity 100
-                   maxTorque 100
+                   controlPID 1000 0 0
+                   maxVelocity 10000
+                   maxTorque 10000
                  }
                  ]
                  endPoint Solid {
@@ -116,9 +121,9 @@ PROTO Rider[
                            device [
                            RotationalMotor {
                              name "%<=HipMotor>%"
-                             controlPID 100 0 10
-                             maxVelocity 100
-                             maxTorque 100
+                             controlPID 1000 0 0
+                             maxVelocity 10000
+                             maxTorque 10000
                            }
                            ]
                            endPoint Solid {
@@ -130,23 +135,42 @@ PROTO Rider[
                            mass IS torsoMass
                            }
                            ]
+                           name "torso"
+                           boundingObject Sphere {
+                              radius 0.1
+                            }
+                            physics Physics {
+                              mass 0.1
+                            }
                            }
                          }
                        ]
                      }
                    ]
                    name "thigh"
+                   boundingObject Sphere {
+                    radius 0.1
+                  }
+                  physics Physics {
+                    mass 0.1
+                  }
                  }
                }
              ]
            }
          ]
          name "shin"
+         boundingObject Sphere {
+          radius 0.1
+        }
+        physics Physics {
+          mass 0.1
+        }
        }
      }
    ]
    name "%<=solidName>%"
-   boundingObject USE rider_shape
+
    physics Physics {
    mass IS riderMass
    density -1
