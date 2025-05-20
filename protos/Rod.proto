@@ -231,6 +231,7 @@ MyRod.createTriangles();
   ]
   boundingObject USE rod_shape
   physics Physics {
+    density -1
     mass IS Mass
   }
   }#end of Solid
